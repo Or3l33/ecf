@@ -1,0 +1,63 @@
+# Environnement Docker de l'ECF : application PHP + base MySQL
+# sur le réseau bridge personnalisé "mon-reseau-app".
+# Les mots de passe sont lus dans le fichier .env (non versionné, voir .env.example).
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: mon-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql          # les données survivent à la suppression du conteneur
+    networks:
+      - mon-reseau-app
+    healthcheck:                        # "sain" seulement quand MySQL accepte les connexions
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ./app
+      args:
+        APP_VERSION: ${APP_VERSION:-v1}
+    image: mon-env-php:${APP_VERSION:-v1}
+    container_name: mon-conteneur-app
+    environment:
+      DB_HOST: db                       # nom du service : résolu par le DNS du réseau Docker
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:80"
+    networks:
+      - mon-reseau-app
+    depends_on:
+      db:
+        condition: service_healthy      # attend que MySQL soit prêt
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 510M
+    # Limite de stockage : storage_opt size= est ignoré sur ext4 + overlayfs,
+    # donc système de fichiers en lecture seule et seuls dossiers inscriptibles en tmpfs plafonnés (64 Mo au total)
+    read_only: true
+    tmpfs:
+      - /tmp:size=50m
+      - /var/run/apache2:size=10m
+      - /var/lock/apache2:size=4m
+    restart: unless-stopped
+
+networks:
+  mon-reseau-app:
+    external: true                      # réseau créé au préalable : docker network create mon-reseau-app
+
+volumes:
+  db-data:
