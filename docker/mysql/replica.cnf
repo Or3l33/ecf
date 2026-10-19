@@ -1,0 +1,10 @@
+# Serveur réplique (conteneur mon-mysql-replica)
+[mysqld]
+server-id                = 2               # doit être différent de celui de la source
+log-bin                  = mysql-bin
+relay-log                = relay-bin       # copie locale du journal reçu de la source
+gtid_mode                = ON
+enforce_gtid_consistency = ON
+read_only                = ON              # personne n'écrit directement sur la réplique (sauf root)
+# super_read_only (même root bloqué) est activé par setup-replication.sh une fois la copie
+# initiale chargée : ici il empêcherait le premier démarrage du conteneur.
