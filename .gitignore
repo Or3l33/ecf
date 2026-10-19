@@ -1,0 +1,17 @@
+# Fichiers temporaires et de sauvegarde
+*.swp
+*~
+*.bak
+*.log
+
+# Secrets : ne jamais les versionner
+.env
+*.pem
+*.key
+id_rsa*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
