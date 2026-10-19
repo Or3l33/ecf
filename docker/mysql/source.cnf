@@ -1,0 +1,6 @@
+# Serveur source de la réplication (conteneur mon-mysql)
+[mysqld]
+server-id                = 1
+log-bin                  = mysql-bin       # journal binaire : les écritures que la réplique relit
+gtid_mode                = ON              # chaque transaction a un identifiant unique
+enforce_gtid_consistency = ON

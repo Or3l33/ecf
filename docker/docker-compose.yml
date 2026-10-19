@@ -13,9 +13,29 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - db-data:/var/lib/mysql          # les données survivent à la suppression du conteneur
+      - ./mysql/source.cnf:/etc/mysql/conf.d/replication.cnf:ro
     networks:
       - mon-reseau-app
     healthcheck:                        # "sain" seulement quand MySQL accepte les connexions
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # Deuxième serveur MySQL : réplique en lecture seule de "db",
+  # configurée par setup-replication.sh
+  db-replica:
+    image: mysql:8.4
+    container_name: mon-mysql-replica
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - db-replica-data:/var/lib/mysql
+      - ./mysql/replica.cnf:/etc/mysql/conf.d/replication.cnf:ro
+    networks:
+      - mon-reseau-app
+    healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
@@ -61,3 +81,4 @@ networks:
 
 volumes:
   db-data:
+  db-replica-data:
