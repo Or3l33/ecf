@@ -1,0 +1,13 @@
+# Cluster Kubernetes local "ecf-prod" (kind = Kubernetes dans Docker), 1 seul nœud.
+# Remplace le cluster AKS (aucun abonnement Azure disponible) : les manifestes
+# namespace.yaml, mysql.yaml et app.yaml s'appliquent tels quels sur AKS.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ecf-prod
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+    extraPortMappings:
+      - containerPort: 30080          # NodePort du service mon-app
+        hostPort: 8090                # http://localhost:8090 sur la VM
+        protocol: TCP
