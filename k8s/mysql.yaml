@@ -1,0 +1,64 @@
+# Base MySQL 8.4 de production : StatefulSet avec son propre disque persistant.
+# Les mots de passe viennent du Secret "ecf-db" (créé à partir du .env, jamais versionné).
+apiVersion: v1
+kind: Service
+metadata:
+  name: db                            # même nom d'hôte que dans Docker Compose
+  namespace: production
+spec:
+  clusterIP: None                     # service "headless" : DNS stable pour le StatefulSet
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: production
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: ecf-db, key: MYSQL_ROOT_PASSWORD } }
+            - name: MYSQL_DATABASE
+              valueFrom: { secretKeyRef: { name: ecf-db, key: DB_NAME } }
+            - name: MYSQL_USER
+              valueFrom: { secretKeyRef: { name: ecf-db, key: DB_USER } }
+            - name: MYSQL_PASSWORD
+              valueFrom: { secretKeyRef: { name: ecf-db, key: DB_PASSWORD } }
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: donnees
+              mountPath: /var/lib/mysql
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 700Mi }
+          readinessProbe:               # "prêt" seulement quand MySQL accepte les connexions
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\""]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5             # la VM de test est lente : 1 s (défaut) ne suffit pas
+  volumeClaimTemplates:                 # un disque persistant par pod MySQL
+    - metadata:
+        name: donnees
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

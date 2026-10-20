@@ -1,0 +1,7 @@
+# Espace de noms de l'environnement de production
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environnement: production

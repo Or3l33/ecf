@@ -15,3 +15,8 @@ id_rsa*
 *.tfstate
 *.tfstate.*
 *.tfvars
+
+# Énoncé Studi (reproduction interdite, dépôt public)
+enonce.pdf
+# Rapport ECF (données personnelles, dépôt public)
+*.docx
